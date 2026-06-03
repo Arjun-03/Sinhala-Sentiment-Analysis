@@ -23,7 +23,6 @@ from emoji_handler import (
     is_emoji_only,
     score_emojis,
     emoji_score_to_sentiment,
-    emojis_to_words,
     has_sarcasm_emoji,
 )
 from language_detector import LanguageDetector
@@ -192,8 +191,7 @@ class SentimentPipeline:
         # 3b. Slang normalization
         normalized = self._slang.normalize(normalized)
 
-        # 3c. Convert emojis to words for NLP (keeps Sinhala script intact)
-        text_for_model = emojis_to_words(normalized)
+        text_for_model = normalized
 
         # 3d. Detect language (on emoji-free version)
         import emoji as _emoji_lib
