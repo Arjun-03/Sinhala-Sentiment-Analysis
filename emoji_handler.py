@@ -18,9 +18,10 @@ import emoji
 EMOJI_SCORES: dict[str, int] = {
     # Strong positive
     "❤️":  3, "🥰": 3, "😍": 3, "🤩": 3, "💯": 3,
-    "👍":  2, "🔥": 2, "🎉": 2, "💪": 2,
+    "👍":  2, "🔥": 2, "🎉": 2, "💪": 2, "🙏": 2,
     "😊":  2, "😁": 2, "🙌": 2, "✨": 2, "💖": 2,
     "👏":  2, "🥳": 2, "😎": 2, "🌷": 1, "❤": 1,
+    "💪": 1,
 
     # Mild positive
     "🙂":  1, "😄": 1, "😀": 1, "💙": 1, "💚": 1,
@@ -38,7 +39,7 @@ EMOJI_SCORES: dict[str, int] = {
 
     # Strong negative
     "😡": -3, "🤬": -3, "🤮": -4, "🤢": -3, "💀": -3,
-    "🤡": -2,  # sarcasm marker — treated mildly negative
+    "🤡": -3,  # sarcasm marker — treated mildly negative
 }
 
 # Sarcasm-associated emojis (used in sarcasm detection heuristic)
