@@ -8,8 +8,8 @@ Routing logic:
        a. Normalize text
        b. Apply slang normalization
        c. Detect language
-       d. If pure Sinhala → translate → XLM-R
-       e. If English / mixed → XLM-R directly
+       d. If pure Sinhala or mixed → translate → XLM-R
+       e. If pure English → XLM-R directly
   4. Sarcasm heuristic applied after model prediction
   5. Confidence threshold: low confidence → neutral
 """
@@ -206,12 +206,12 @@ class SentimentPipeline:
         # 3f. Route by language
         translated_text = ""
 
-        if detected_lang == "sinhala":
-            # Translate Sinhala → English, then classify
+        if detected_lang in ("sinhala", "mixed"):
+            # Translate to English first, then classify
             translated_text = self._translator.translate(text_for_model)
             classify_input  = translated_text
         else:
-            # English or mixed → classify directly
+            # Pure English → classify directly
             classify_input = text_for_model
 
         # 3g. Model classification
