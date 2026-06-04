@@ -152,9 +152,11 @@ class SentimentPipeline:
         translated_text = ""
 
         if detected_lang in ("sinhala", "mixed"):
-            # Translate to English first, then classify
+            # Preserve emojis before translation — the tokenizer drops them
+            emojis_in_text = "".join(tok['emoji'] for tok in _emoji_lib.emoji_list(text_for_model))
             translated_text = self._translator.translate(text_for_model)
-            classify_input  = translated_text
+            classify_input  = (translated_text + " " + emojis_in_text).strip()
+            translated_text = classify_input
         else:
             # Pure English → classify directly
             classify_input = text_for_model
