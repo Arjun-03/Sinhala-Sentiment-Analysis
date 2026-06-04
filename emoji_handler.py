@@ -1,10 +1,9 @@
 """
-Emoji detection, scoring, and text conversion for Sri Lankan social media.
+Emoji detection and scoring for Sri Lankan social media.
 
-Three responsibilities:
+Two responsibilities:
   1. Detect emoji-only comments
   2. Score emoji-only comments with a weighted dictionary
-  3. Convert emojis to words when text + emojis are mixed
 """
 
 import re
@@ -87,19 +86,6 @@ def emoji_score_to_sentiment(score: int) -> str:
         return "negative"
     return "neutral"
 
-
-def emojis_to_words(text: str) -> str:
-    """
-    Replace emojis with their English description words.
-    Example: "සුපිරි 🔥❤️" → "සුපිරි fire red heart"
-    Uses emoji.demojize() then strips the :colon: wrappers.
-    """
-    demojized = emoji.demojize(text, delimiters=(" ", " "))
-    # demojize adds spaces + underscores; clean up for readability
-    demojized = demojized.replace("_", " ")
-    # Collapse multiple spaces that may have appeared
-    demojized = re.sub(r' {2,}', ' ', demojized).strip()
-    return demojized
 
 
 def has_sarcasm_emoji(text: str) -> bool:
