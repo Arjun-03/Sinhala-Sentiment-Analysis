@@ -4,6 +4,8 @@ Maps common Sinhala/Singlish internet slang to plain English equivalents.
 Add new entries here to extend coverage — no code changes needed.
 """
 
+import re
+
 SLANG_DICT: dict[str, str] = {
     # Positive / praise
     "patta":    "excellent",
@@ -52,21 +54,16 @@ class SlangNormalizer:
 
     def __init__(self, custom_dict: dict[str, str] | None = None):
         self._dict = {**SLANG_DICT, **(custom_dict or {})}
-        # Pre-build a lowercase version for case-insensitive matching
-        self._lower_dict = {k.lower(): v for k, v in self._dict.items()}
+        lower_dict = {k.lower(): v for k, v in self._dict.items()}
+        # Pre-compile patterns once, longest phrase first so multi-word matches win
+        self._patterns: list[tuple[re.Pattern, str]] = [
+            (re.compile(re.escape(phrase), re.IGNORECASE), replacement)
+            for phrase, replacement in sorted(lower_dict.items(), key=lambda x: len(x[0]), reverse=True)
+        ]
 
     def normalize(self, text: str) -> str:
-        """
-        Replace slang words/phrases in text.
-        Works on whole tokens and multi-word phrases.
-        Returns the modified text.
-        """
-        # Try multi-word phrases first (longest match wins)
+        """Replace slang words/phrases in text. Longest match wins."""
         result = text
-        for phrase in sorted(self._lower_dict, key=len, reverse=True):
-            replacement = self._lower_dict[phrase]
-            # Case-insensitive whole-phrase replacement
-            import re
-            pattern = re.compile(re.escape(phrase), re.IGNORECASE)
+        for pattern, replacement in self._patterns:
             result = pattern.sub(replacement, result)
         return result

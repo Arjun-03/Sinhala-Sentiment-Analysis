@@ -16,6 +16,8 @@ Routing logic:
 import logging
 from dataclasses import dataclass
 
+import emoji as _emoji_lib
+
 from normalization import TextNormalizer
 from slang_dictionary import SlangNormalizer
 from emoji_handler import (
@@ -141,7 +143,6 @@ class SentimentPipeline:
         text_for_model = normalized
 
         # 2c. Detect language (on emoji-free version)
-        import emoji as _emoji_lib
         text_no_emoji = _emoji_lib.replace_emoji(normalized, replace=' ').strip()
         detected_lang = self._lang_detector.detect(text_no_emoji)
 
