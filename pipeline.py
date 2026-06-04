@@ -2,20 +2,19 @@
 Main sentiment analysis pipeline for Sri Lankan social media comments.
 
 Routing logic:
-  1. Media-only (GIF/sticker) → infer from metadata
-  2. Emoji-only               → emoji weighted scoring
-  3. Text (possibly + emojis):
+  1. Emoji-only               → emoji weighted scoring
+  2. Text (possibly + emojis):
        a. Normalize text
        b. Apply slang normalization
        c. Detect language
        d. If pure Sinhala or mixed → translate → XLM-R
        e. If pure English → XLM-R directly
-  4. Sarcasm heuristic applied after model prediction
-  5. Confidence threshold: low confidence → neutral
+  3. Sarcasm heuristic applied after model prediction
+  4. Confidence threshold: low confidence → neutral
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from normalization import TextNormalizer
 from slang_dictionary import SlangNormalizer
@@ -30,38 +29,6 @@ from translator import Translator
 from sentiment_model import SentimentModel
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Media metadata sentiment inference
-# ---------------------------------------------------------------------------
-
-_MEDIA_SENTIMENT_MAP: dict[str, str] = {
-    # Positive
-    "laughing": "positive", "heart": "positive", "thumbs_up": "positive",
-    "fire": "positive", "love": "positive", "clap": "positive",
-    "wow": "positive", "celebrate": "positive", "smile": "positive",
-    "cool": "positive",
-    # Negative
-    "angry": "negative", "sad": "negative", "cry": "negative",
-    "thumbs_down": "negative", "disgusted": "negative", "sick": "negative",
-    # Neutral
-    "thinking": "neutral", "shrug": "neutral",
-}
-
-
-def _infer_media_sentiment(metadata: dict) -> str:
-    """Return sentiment from sticker/GIF metadata fields."""
-    keys_to_check = ["sticker_name", "gif_tags", "alt_text", "reaction_type"]
-    for key in keys_to_check:
-        value = metadata.get(key, "")
-        if isinstance(value, list):
-            value = " ".join(value)
-        value_lower = str(value).lower()
-        for keyword, sentiment in _MEDIA_SENTIMENT_MAP.items():
-            if keyword in value_lower:
-                return sentiment
-    return "neutral"
 
 
 # ---------------------------------------------------------------------------
@@ -143,32 +110,12 @@ class SentimentPipeline:
     # Public API
     # ------------------------------------------------------------------
 
-    def analyze(self, text: str, media_metadata: dict | None = None) -> SentimentResult:
-        """
-        Analyze a single comment and return a SentimentResult.
-
-        Args:
-            text:           The raw comment string (may be empty for media-only).
-            media_metadata: Optional dict with keys like sticker_name, gif_tags, etc.
-        """
+    def analyze(self, text: str) -> SentimentResult:
+        """Analyze a single comment and return a SentimentResult."""
         # Sanitize surrogate characters that Windows stdin can introduce
         original = (text or "").encode("utf-8", errors="replace").decode("utf-8")
 
-        # ── 1. Media-only (no text) ─────────────────────────────────────────
-        if media_metadata and not original.strip():
-            sentiment = _infer_media_sentiment(media_metadata)
-            return SentimentResult(
-                original_text=original,
-                normalized_text="",
-                detected_language="media",
-                translated_text="",
-                emoji_score=None,
-                model_sentiment=sentiment,
-                confidence=1.0,
-                final_sentiment=sentiment,
-            )
-
-        # ── 2. Emoji-only ───────────────────────────────────────────────────
+        # ── 1. Emoji-only ───────────────────────────────────────────────────
         if is_emoji_only(original):
             score = score_emojis(original)
             sentiment = emoji_score_to_sentiment(score)
@@ -183,25 +130,25 @@ class SentimentPipeline:
                 final_sentiment=sentiment,
             )
 
-        # ── 3. Text (with or without emojis) ────────────────────────────────
+        # ── 2. Text (with or without emojis) ────────────────────────────────
 
-        # 3a. Normalize
+        # 2a. Normalize
         normalized = self._normalizer.normalize(original)
 
-        # 3b. Slang normalization
+        # 2b. Slang normalization
         normalized = self._slang.normalize(normalized)
 
         text_for_model = normalized
 
-        # 3d. Detect language (on emoji-free version)
+        # 2c. Detect language (on emoji-free version)
         import emoji as _emoji_lib
         text_no_emoji = _emoji_lib.replace_emoji(normalized, replace=' ').strip()
         detected_lang = self._lang_detector.detect(text_no_emoji)
 
-        # 3e. Compute emoji score (informational)
+        # 2d. Compute emoji score (informational)
         emoji_score = score_emojis(original)
 
-        # 3f. Route by language
+        # 2e. Route by language
         translated_text = ""
 
         if detected_lang in ("sinhala", "mixed"):
@@ -212,12 +159,12 @@ class SentimentPipeline:
             # Pure English → classify directly
             classify_input = text_for_model
 
-        # 3g. Model classification
+        # 2f. Model classification
         model_result   = self._model.classify(classify_input)
         model_sentiment = model_result["sentiment"]
         confidence      = model_result["confidence"]
 
-        # 3h. Sarcasm heuristic (uses original text for emoji detection)
+        # 2g. Sarcasm heuristic (uses original text for emoji detection)
         final_sentiment = _apply_sarcasm_heuristic(original, model_sentiment)
 
         return SentimentResult(
