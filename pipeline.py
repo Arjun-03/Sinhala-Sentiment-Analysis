@@ -24,6 +24,7 @@ from emoji_handler import (
     is_emoji_only,
     score_emojis,
     emoji_score_to_sentiment,
+    emoji_confidence,
     has_sarcasm_emoji,
 )
 from language_detector import LanguageDetector
@@ -128,7 +129,7 @@ class SentimentPipeline:
                 translated_text="",
                 emoji_score=score,
                 model_sentiment=sentiment,
-                confidence=1.0,
+                confidence=emoji_confidence(score),
                 final_sentiment=sentiment,
             )
 

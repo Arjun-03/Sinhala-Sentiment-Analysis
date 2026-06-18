@@ -87,6 +87,17 @@ def emoji_score_to_sentiment(score: int) -> str:
     return "neutral"
 
 
+def emoji_confidence(score: int) -> float:
+    """
+    Map an emoji score to a confidence value in [0.55, 0.80).
+
+    Uses a rescaled sigmoid: 0.55 + 0.25 * (|score| / (|score| + 3))
+    so weak signals (one mild emoji) sit near 0.55 and strong signals
+    approach but never reach 0.80.
+    """
+    return round(0.55 + 0.25 * (abs(score) / (abs(score) + 3)), 4) if score != 0 else 0.55
+
+
 
 def has_sarcasm_emoji(text: str) -> bool:
     """Return True if the text contains a sarcasm-associated emoji."""
